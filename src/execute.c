@@ -1,0 +1,512 @@
+#include "../include/execute.h"
+
+int string_to_int(char *string) {
+    int i = 0;
+    for (size_t j = 0; j<strlen(string); j++) {
+        if (string[j] < 48 || string[j] > 57) return -1;
+    }
+    while(string[i] != '\0') i++;
+    i--;
+    int coeff = 1;
+    while(i) {
+        coeff *= 10;
+        i--;
+    }
+    int ret_int = 0;
+    while (coeff) {
+        ret_int += (string[i]-48) * coeff;
+        coeff /= 10; i++;
+    }
+    return ret_int;
+}
+
+char* int_to_string(int n) {
+    char *ret_string = malloc(sizeof(char) * 10);
+    int i = 0;
+    while (n) {
+        ret_string[i] = (n%10 + 48);
+        i++; n /= 10;
+    }
+    ret_string[i] = '\0';
+    i--;
+    int j = 0;
+    while (j < i) {
+        char c = ret_string[j];
+        ret_string[j] = ret_string[i];
+        ret_string[i] = c;
+        j++; i--;
+    }
+    return ret_string;
+}
+
+log_node *log_head = NULL;
+int curr_logs = 0;
+
+log_node* create_log_node() {
+    log_node *newnode = malloc(sizeof(log_node));
+    newnode->string = NULL;
+    newnode->next = NULL;
+    return newnode;
+}
+
+void log_file_write() {
+    log_node *temp = log_head;
+    FILE *f = fopen(log_file, "w+");
+    while (temp != NULL) {
+        fwrite(temp->string, sizeof(char), strlen(temp->string), f);
+        //fwrite("\n", sizeof(char), 1, f);
+        temp = temp->next;
+    }
+    fclose(f);
+}
+
+void log_store2(char *input) {
+    log_node *temp;
+
+    if (log_head == NULL) {
+        log_head = create_log_node();
+        log_head->string = (char*) malloc(sizeof(char) * MAX_CHARS);
+        strcpy(log_head->string, input);
+        curr_logs++;
+        return;
+    }
+
+    if (strcmp(log_head->string, input) == 0) {
+        return;
+    }
+    
+    temp = create_log_node();
+    temp->string = (char *) malloc(sizeof(char) * MAX_CHARS);
+    strcpy(temp->string, input);
+    temp->next = log_head;
+    log_head = temp;
+    curr_logs++;
+
+    if (curr_logs > 15) {
+        while (temp->next->next != NULL) 
+            temp = temp->next;
+        
+        free(temp->next);
+        temp->next = NULL;
+        curr_logs = 15;
+    }
+    return;
+}
+
+void log_list_init() {
+    if (access(log_file, F_OK) == 0) {
+        FILE *f = fopen(log_file, "r");
+        char *str = NULL;
+        size_t input_length = 0;
+        while (getline(&str, &input_length, f) >= 0) {
+            log_store2(str);
+        }
+        if (log_head != NULL) {
+            log_node *prev = log_head;
+            log_node *temp = log_head->next;
+            log_head->next = NULL;
+            while (temp != NULL) {
+                log_node *temp2 = temp->next;
+                temp->next = prev;
+                prev = temp;
+                temp = temp2;
+            }
+            log_head = prev;
+        }
+    }
+}
+
+// log store (called from main)
+void log_store(char *input) {
+    log_node *temp;
+
+    ast_node *ast_temp = build_ast(tokenise(input));
+    while (ast_temp != NULL) {
+        if (strcmp(ast_temp->command, "log") == 0) return;
+        ast_temp = ast_temp->next;
+    }
+
+    if (log_head == NULL) {
+        log_head = create_log_node();
+        log_head->string = (char*) malloc(sizeof(char) * MAX_CHARS);
+        strcpy(log_head->string, input);
+        curr_logs++;
+        log_file_write();
+        return;
+    }
+
+    if (strcmp(log_head->string, input) == 0) {
+        return;
+    }
+    
+    temp = create_log_node();
+    temp->string = (char *) malloc(sizeof(char) * MAX_CHARS);
+    strcpy(temp->string, input);
+    temp->next = log_head;
+    log_head = temp;
+    curr_logs++;
+
+    if (curr_logs > 15) {
+        while (temp->next->next != NULL) 
+            temp = temp->next;
+        
+        free(temp->next);
+        temp->next = NULL;
+        curr_logs = 15;
+    }
+    log_file_write();
+    return;
+}
+
+// log print
+void log_print(log_node *curr) {
+    if (curr == NULL) return;
+
+    log_print(curr->next);
+    if (curr->string != NULL)
+    printf("%s", curr->string);
+}
+
+// log purge
+void log_purge(void) {
+    log_node *temp = log_head;
+    while (temp != NULL) {
+        log_head = temp->next;
+        free(temp);
+        temp = log_head;
+    }
+    log_head = NULL;
+    curr_logs = 0;
+    log_file_write();
+    return;
+}
+
+// execute logs
+void log_execute(int index) {
+    if (1 <= index && index <= curr_logs) {
+        log_node *temp = log_head;
+        int idx = 1;
+        while (temp != NULL) {
+            if (index == idx) {
+                execute_one(build_ast(tokenise(temp->string)));
+                break;
+            } else {
+                idx++;
+                temp = temp->next;
+            }
+        }
+    }
+    return;
+}
+
+void handle_redirect(int *p_fd_in, int *p_fd_out, ast_node *head) {
+    int fd_in = *p_fd_in, fd_out = *p_fd_out;
+    if (head->input_filename != NULL) {
+        fd_in = open(head->input_filename, O_RDONLY);
+        if (fd_in < 0) {
+            fprintf(stderr, "No such file or directory!\n");
+            exit(0);
+        }
+        dup2(fd_in, STDIN_FILENO);
+    }
+    if (head->output_filename != NULL) {
+        if (head->output_file_mode == 1)
+            fd_out = open(head->output_filename, O_WRONLY | O_CREAT | O_TRUNC, 0777);
+        else 
+            fd_out = open(head->output_filename, O_WRONLY | O_APPEND | O_CREAT, 0777);
+        if (fd_out < 0) {
+            fprintf(stderr, "Unable to create file for writing\n");
+            exit(0);
+        }
+        dup2(fd_out, STDOUT_FILENO);
+    }
+}
+
+void handle_execution(ast_node *head, char **args_list) {
+    char *command = malloc(sizeof(char) * MAX_CHARS);
+    char path1[] = "/bin/";
+    char path2[] = "/usr/bin/";
+
+    // try exec normally
+    strcpy(command, head->command);
+    args_list[0] = command;
+    execv(command, args_list);
+
+    // exec using path1
+    strcpy(command, path1);
+    strcat(command, head->command);
+    args_list[0] = command;
+    execv(command, args_list);
+    
+    // exec using path2
+    strcpy(command, path2);
+    strcat(command, head->command);
+    args_list[0] = command;
+    execv(command, args_list);
+
+    // error if exec failed
+    fprintf(stderr, "Command not found!\n");
+    exit(0);
+}
+
+void handle_close(int fd_in, int fd_out) {
+    close(fd_in);
+    close(fd_out);
+}
+
+void pingg(char *pid_str, char *signum_str) {
+    int signum = string_to_int(signum_str);
+    int pid = string_to_int(pid_str);
+    if (signum == -1 || pid == -1) {
+        fprintf(stderr, "Invalid syntax!\n");
+        return;
+    }
+    signum %= 32;
+
+    jobs_list *temp = background_jobs_head;
+    while(temp != NULL) {
+        if (temp->pid == pid) {
+            if (check_job(temp) == NORMAL_TERMINATION || check_job(temp) == ABNORMAL_TERMINATION) {
+                break;
+            } else {
+                kill(-pid, signum);
+                printf("Sent signal %d to process with pid %d\n", signum, pid);
+                return;
+            }
+        }
+        temp = temp->next;
+    }
+    fprintf(stderr, "No such process found\n");
+}
+
+void ctrld() {
+    jobs_list *temp = background_jobs_head;
+    while(temp != NULL) {
+        if (check_job(temp) != 0 && check_job(temp) != -1) {
+            kill(-temp->pid, SIGKILL);
+        }
+        temp = temp->next;
+    }
+    printf("logout\n");
+    exit(0);
+}
+
+// execute a single ast_node
+int execute_one(ast_node *head) {
+    int fd_in = -1, fd_out = -1;
+    handle_redirect(&fd_in, &fd_out, head);
+
+    if (strcmp(head->command, "hop") == 0) {
+        hopp(head->command_args_head, head->command_args_tail, &parent_directory, &current_directory, &previous_directory);
+        handle_close(fd_in, fd_out);
+    }
+    else if (strcmp(head->command, "fg") == 0) {
+        if (head->command_args_head == NULL) {
+            fgg(-1);
+        } else {
+            fgg(string_to_int(head->command_args_head->command));
+        }
+        handle_close(fd_in, fd_out);
+    }
+    else if (strcmp(head->command, "bg") == 0) {
+        if (head->command_args_head == NULL) {
+            bgg(-1);
+        } else {
+            bgg(string_to_int(head->command_args_head->command));
+        }
+        handle_close(fd_in, fd_out);
+    }
+    else if (strcmp(head->command, "ping") == 0) {
+        int cmds = 0;
+        arg_node *temp = head->command_args_head;
+        while (temp != NULL) {
+            temp = temp->next_arg;
+            cmds++;
+        }
+        if (cmds != 2) {
+            fprintf(stderr, "ping: usage: exactly 2 args\n");
+        }
+        pingg(head->command_args_head->command, head->command_args_tail->command);
+        handle_close(fd_in, fd_out);
+    }
+
+    else if (strcmp(head->command, "activities") == 0) {
+        if (head->command_args_head != NULL) {
+            fprintf(stderr, "activites: usage: no args\n");
+            exit(0);
+        }
+        activitiess();
+        handle_close(fd_in, fd_out);
+        exit(0);
+    }
+
+    else if (strcmp(head->command, "reveal") == 0) {
+        reveall(head, current_directory, parent_directory, previous_directory);
+        handle_close(fd_in, fd_out);
+        exit(0);
+    }
+    
+    else if (strcmp(head->command, "log") == 0) {
+        if (head->command_args_head == NULL) {
+            if (log_head != NULL)
+            log_print(log_head);
+        } 
+        else if (strcmp(head->command_args_head->command, "purge") == 0) {
+            log_purge();
+        } 
+        else if (strcmp(head->command_args_head->command, "execute") == 0) {
+            if (head->command_args_head->next_arg != NULL) {
+                log_execute(atoi(head->command_args_head->next_arg->command));
+            } else {
+                fprintf(stderr, "execute: error executing log execute\n");
+            }
+            exit(0);
+        } 
+        else {
+            fprintf(stderr, "execute: error executing log\n");
+        }
+        handle_close(fd_in, fd_out);
+    }
+    
+    else {
+        arg_node *temp = head->command_args_head, *temp2;
+        temp2 = temp;
+        int size = 2;
+        while (temp != NULL) {
+            size++;
+            temp = temp->next_arg;
+        }
+        
+        temp = temp2;
+        char **args_list = (char**) malloc(sizeof(char*) * size);
+        
+        size = 0;
+        size++;
+        
+        while(temp != NULL) {
+            args_list[size] = temp->command;
+            temp = temp->next_arg; size++;
+        }
+        args_list[size] = NULL;
+
+        handle_execution(head, args_list);
+        handle_close(fd_in, fd_out);
+        exit(1);
+    }
+    
+    return 0;
+}
+
+int execute_all(ast_node *head) {
+    ast_node *temp = head;
+
+    while (temp != NULL) {
+        ast_node *temp2 = temp;
+
+        int cmds = 1;
+        while (temp2 != NULL && temp2->male) {
+            cmds++;
+            temp2 = temp2->next;
+        }
+
+        ast_node *commands[cmds], *temp3 = temp;
+        int pipes[cmds-1][2];
+        for (int i = 0; i<cmds-1; i++) {
+            pipe(pipes[i]);
+            commands[i] = temp3;
+            temp3 = temp3->next;
+        }
+        commands[cmds-1] = temp3;
+        temp3 = temp3->next;
+        int pids[cmds];
+        int pgid = 0;
+
+        for (int i = 0; i<cmds; i++) {
+            if (strcmp(commands[i]->command, "hop") == 0) {
+                execute_one(commands[i]);
+                continue;
+            }
+            else if (strcmp(commands[i]->command, "fg") == 0) {
+                execute_one(commands[i]);
+                continue;
+            } else if (strcmp(commands[i]->command, "bg") == 0) {
+                execute_one(commands[i]);
+                continue;
+            } else if (strcmp(commands[i]->command, "ping") == 0) {
+                execute_one(commands[i]);
+                continue;
+            } else if (strcmp(commands[i]->command, "log") == 0 && commands[i]->command_args_head != NULL &&
+                        strcmp(commands[i]->command_args_head->command, "execute") != 0) {
+                execute_one(commands[i]);
+                continue;
+            }
+            pids[i] = fork();
+
+            if (pids[i] == 0) {
+                signal(SIGINT, SIG_DFL);
+                signal(SIGTSTP, SIG_DFL);
+                signal(SIGTTIN, SIG_DFL);
+                signal(SIGTTOU, SIG_DFL);
+
+                // input for first command is stdin, not pipe
+                if (i != 0) {
+                    dup2(pipes[i-1][0], STDIN_FILENO);
+                }
+
+                // output for last command is stdout, not pipe
+                if (i != cmds-1) {
+                    dup2(pipes[i][1], STDOUT_FILENO);
+                }
+                
+                for (int j = 0; j<cmds-1; j++) {
+                    close(pipes[j][0]);
+                    close(pipes[j][1]);
+                }
+
+                execute_one(commands[i]);
+                exit(0);
+            } else {
+                if (pgid == 0) pgid = pids[i];
+                setpgid(pids[i], pgid);
+            }
+        }
+        for (int i = 0; i<cmds-1; i++) {
+            close(pipes[i][0]);
+            close(pipes[i][1]);
+        }
+
+        if (commands[cmds-1]->background) {
+            add_job_string(current_command, pgid, RUNNING);
+            printf("[%d] %d\n", background_jobs_tail->serial_num, pgid);
+        } else {
+            foreground_pgid = pgid;
+            tcsetpgrp(STDIN_FILENO, pgid);
+
+            int wait_count = 0;
+            int status;
+
+            while (wait_count < cmds) {
+                pid_t pid = waitpid(-pgid, &status, WUNTRACED);
+
+                if (pid > 0) {
+                    if (WIFSTOPPED(status)) {
+                        add_job_string(current_command, pgid, STOPPED);
+                        printf("[%d] Stopped %s\n", background_jobs_tail->serial_num, background_jobs_tail->command);
+                        break;
+                    }
+                    if (WIFEXITED(status) || WIFSIGNALED(status)) {
+                        wait_count++;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            tcsetpgrp(STDIN_FILENO, getpgrp());
+            foreground_pgid = 0;
+        }
+
+        temp = temp2->next;
+    }
+    return 0;
+}
