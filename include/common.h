@@ -34,8 +34,5 @@ extern int shell_pgid;
 // ping
 void callping(char *pid_str, char *signum_str);
 
-// EOF, end shell and kill all child
-void ctrld();
-
 #endif
 

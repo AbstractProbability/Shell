@@ -1,44 +1,5 @@
 #include "../include/execute.h"
 
-int string_to_int(char *string) {
-    int i = 0;
-    for (size_t j = 0; j<strlen(string); j++) {
-        if (string[j] < 48 || string[j] > 57) return -1;
-    }
-    while(string[i] != '\0') i++;
-    i--;
-    int coeff = 1;
-    while(i) {
-        coeff *= 10;
-        i--;
-    }
-    int ret_int = 0;
-    while (coeff) {
-        ret_int += (string[i]-48) * coeff;
-        coeff /= 10; i++;
-    }
-    return ret_int;
-}
-
-char* int_to_string(int n) {
-    char *ret_string = malloc(sizeof(char) * 10);
-    int i = 0;
-    while (n) {
-        ret_string[i] = (n%10 + 48);
-        i++; n /= 10;
-    }
-    ret_string[i] = '\0';
-    i--;
-    int j = 0;
-    while (j < i) {
-        char c = ret_string[j];
-        ret_string[j] = ret_string[i];
-        ret_string[i] = c;
-        j++; i--;
-    }
-    return ret_string;
-}
-
 log_node *log_head = NULL;
 int curr_logs = 0;
 
@@ -254,41 +215,6 @@ void handle_close(int fd_in, int fd_out) {
     close(fd_out);
 }
 
-void callping(char *pid_str, char *signum_str) {
-    int signum = string_to_int(signum_str);
-    int pid = string_to_int(pid_str);
-    if (signum == -1 || pid == -1) {
-        fprintf(stderr, "Invalid syntax!\n");
-        return;
-    }
-    signum %= 32;
-
-    for (jobs_list *temp = background_jobs_head; temp!=NULL; temp = temp->next) {
-        if (temp->pid != pid) {
-            continue;
-        }
-        if (check_job(temp) == NORMAL_TERMINATION || check_job(temp) == ABNORMAL_TERMINATION) {
-            break;
-        }
-        kill(-pid, signum);
-        printf("Sent signal %d to process with pid %d\n", signum, pid);
-        return;
-    }
-    fprintf(stderr, "No such process found\n");
-}
-
-void ctrld() {
-    jobs_list *temp = background_jobs_head;
-    while(temp != NULL) {
-        if (check_job(temp) != 0 && check_job(temp) != -1) {
-            kill(-temp->pid, SIGKILL);
-        }
-        temp = temp->next;
-    }
-    printf("logout\n");
-    exit(0);
-}
-
 // execute a single ast_node
 int execute_one(ast_node *head) {
     int fd_in = -1, fd_out = -1;
@@ -300,17 +226,17 @@ int execute_one(ast_node *head) {
     }
     else if (strcmp(head->command, "fg") == 0) {
         if (head->command_args_head == NULL) {
-            callfg(-1);
+            callfg("-1");
         } else {
-            callfg(string_to_int(head->command_args_head->command));
+            callfg(head->command_args_head->command);
         }
         handle_close(fd_in, fd_out);
     }
     else if (strcmp(head->command, "bg") == 0) {
         if (head->command_args_head == NULL) {
-            callbg(-1);
+            callbg("-1");
         } else {
-            callbg(string_to_int(head->command_args_head->command));
+            callbg(head->command_args_head->command);
         }
         handle_close(fd_in, fd_out);
     }

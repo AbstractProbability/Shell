@@ -1,5 +1,25 @@
 #include "../include/jobs.h"
 
+static int string_to_int(char *string) {
+    int i = 0;
+    for (size_t j = 0; j<strlen(string); j++) {
+        if (string[j] < 48 || string[j] > 57) return -1;
+    }
+    while(string[i] != '\0') i++;
+    i--;
+    int coeff = 1;
+    while(i) {
+        coeff *= 10;
+        i--;
+    }
+    int ret_int = 0;
+    while (coeff) {
+        ret_int += (string[i]-48) * coeff;
+        coeff /= 10; i++;
+    }
+    return ret_int;
+}
+
 jobs_list *create_job_string(char *string, int pid, int status) {
     jobs_list *newnode = (jobs_list *) malloc(sizeof(jobs_list));
     newnode->next = NULL;
@@ -113,7 +133,7 @@ int compar(const void *a, const void *b) {
     return strcmp(ja->command, jb->command);
 }
 
-void calljobs() {
+void calljobs(void) {
     // check_list();
     // correct_serial_numbers();
     if (background_jobs_head == NULL) {
@@ -159,7 +179,8 @@ void grant_foreground(jobs_list *temp) {
     tcsetpgrp(STDIN_FILENO, getpgrp());
 }
 
-void callfg(int job_num) {
+void callfg(char *job_num_string) {
+    int job_num = string_to_int(job_num_string);
     jobs_list *temp;
     if (job_num == -1) {
         temp = background_jobs_tail;
@@ -188,7 +209,8 @@ void callfg(int job_num) {
     }
 }
 
-void callbg(int job_num) {
+void callbg(char *job_num_string) {
+    int job_num = string_to_int(job_num_string);
     if (job_num == -1) {
         jobs_list *temp = background_jobs_tail;
         while (temp != NULL && (check_job(temp) != STOPPED)) {
@@ -218,5 +240,40 @@ void callbg(int job_num) {
             printf("No such job\n");
         }
     }
+}
+
+void callping(char *pid_str, char *signum_str) {
+    int signum = string_to_int(signum_str);
+    int pid = string_to_int(pid_str);
+    if (signum == -1 || pid == -1) {
+        fprintf(stderr, "Invalid syntax!\n");
+        return;
+    }
+    signum %= 32;
+
+    for (jobs_list *temp = background_jobs_head; temp!=NULL; temp = temp->next) {
+        if (temp->pid != pid) {
+            continue;
+        }
+        if (check_job(temp) == NORMAL_TERMINATION || check_job(temp) == ABNORMAL_TERMINATION) {
+            break;
+        }
+        kill(-pid, signum);
+        printf("Sent signal %d to process with pid %d\n", signum, pid);
+        return;
+    }
+    fprintf(stderr, "No such process found\n");
+}
+
+void callexit(void) {
+    jobs_list *temp = background_jobs_head;
+    while(temp != NULL) {
+        if (check_job(temp) != 0 && check_job(temp) != -1) {
+            kill(-temp->pid, SIGKILL);
+        }
+        temp = temp->next;
+    }
+    printf("logout\n");
+    exit(0);
 }
 

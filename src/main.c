@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
         // printf("command: %s\n", input);
         if (x == -1) {
             if (feof(stdin)) {
-                ctrld();
+                callexit();
                 exit(0);
             } else {
                 printf("\n");

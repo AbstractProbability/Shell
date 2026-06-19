@@ -15,7 +15,7 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
 
 # main.o
-main.o: src/main.c include/common.h include/execute.h
+main.o: src/main.c include/common.h include/jobs.h include/execute.h
 	$(CC) $(CFLAGS) -c src/main.c
 
 # parser.o

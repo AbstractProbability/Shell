@@ -42,14 +42,19 @@ int check_job(jobs_list *temp);
 void check_list();
 
 // list all backgound jobs
-void calljobs();
+void calljobs(void);
 
 // fg
-void callfg(int job_num);
+void callfg(char *job_num_string);
 
 // bg
-void callbg(int job_num);
+void callbg(char *job_num_string);
 
+// ping
+void callping(char *pid_str, char *signum_str);
+
+// exit: EOF, end shell and kill all child
+void callexit(void);
 
 #endif
 
