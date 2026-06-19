@@ -330,12 +330,12 @@ int execute_one(ast_node *head) {
         handle_close(fd_in, fd_out);
     }
 
-    else if (strcmp(head->command, "activities") == 0) {
+    else if (strcmp(head->command, "jobs") == 0) {
         if (head->command_args_head != NULL) {
-            fprintf(stderr, "activites: usage: no args\n");
+            fprintf(stderr, "jobs: usage: no args\n");
             exit(0);
         }
-        activitiess();
+        calljobs();
         handle_close(fd_in, fd_out);
         exit(0);
     }

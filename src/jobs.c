@@ -9,10 +9,10 @@ jobs_list *create_job_string(char *string, int pid, int status) {
     newnode->serial_num = -1;
 
     int len = strlen(string);
-    
+
     char *str = (char*) malloc(sizeof(char) * (len+1));
     strcpy(str, string);
-    
+
     if (str[len-2] == '&') str[len-2] = '\0';
     else if (str[len-1] == '\n') str[len-1] = '\0';
     else str[len] = '\0';
@@ -45,7 +45,7 @@ void remove_job(jobs_list *temp) {
     if (temp->prev != NULL) {
         temp->prev->next = temp->next;
     }
-    
+
     // correct_serial_numbers();
     free(temp->command);
     free(temp);
@@ -84,7 +84,7 @@ int check_job(jobs_list *temp) { // return 1 if running, 2 if stopped, 0 if term
     }
 }
 
-// checks the bgjobs list if any jobs are done, and prints them as so. 
+// checks the bgjobs list if any jobs are done, and prints them as so.
 void check_list() {
     jobs_list *temp = background_jobs_head;
 
@@ -113,7 +113,7 @@ int compar(const void *a, const void *b) {
     return strcmp(ja->command, jb->command);
 }
 
-void activitiess() {
+void calljobs() {
     // check_list();
     // correct_serial_numbers();
     if (background_jobs_head == NULL) {
@@ -167,7 +167,7 @@ void fgg(int job_num) {
             printf("No such job\n");
             return;
         }
-        while (temp != NULL && (check_job(temp) == NORMAL_TERMINATION || check_job(temp) == ABNORMAL_TERMINATION)) 
+        while (temp != NULL && (check_job(temp) == NORMAL_TERMINATION || check_job(temp) == ABNORMAL_TERMINATION))
         {
             temp = temp->prev;
         }
@@ -219,3 +219,4 @@ void bgg(int job_num) {
         }
     }
 }
+

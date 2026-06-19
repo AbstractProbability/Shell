@@ -42,7 +42,7 @@ int check_job(jobs_list *temp);
 void check_list();
 
 // list all backgound jobs
-void activitiess();
+void calljobs();
 
 // fg
 void fgg(int job_num);
@@ -52,3 +52,4 @@ void bgg(int job_num);
 
 
 #endif
+
