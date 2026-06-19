@@ -45,10 +45,10 @@ void check_list();
 void calljobs();
 
 // fg
-void fgg(int job_num);
+void callfg(int job_num);
 
 // bg
-void bgg(int job_num);
+void callbg(int job_num);
 
 
 #endif

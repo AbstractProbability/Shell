@@ -254,7 +254,7 @@ void handle_close(int fd_in, int fd_out) {
     close(fd_out);
 }
 
-void pingg(char *pid_str, char *signum_str) {
+void callping(char *pid_str, char *signum_str) {
     int signum = string_to_int(signum_str);
     int pid = string_to_int(pid_str);
     if (signum == -1 || pid == -1) {
@@ -300,17 +300,17 @@ int execute_one(ast_node *head) {
     }
     else if (strcmp(head->command, "fg") == 0) {
         if (head->command_args_head == NULL) {
-            fgg(-1);
+            callfg(-1);
         } else {
-            fgg(string_to_int(head->command_args_head->command));
+            callfg(string_to_int(head->command_args_head->command));
         }
         handle_close(fd_in, fd_out);
     }
     else if (strcmp(head->command, "bg") == 0) {
         if (head->command_args_head == NULL) {
-            bgg(-1);
+            callbg(-1);
         } else {
-            bgg(string_to_int(head->command_args_head->command));
+            callbg(string_to_int(head->command_args_head->command));
         }
         handle_close(fd_in, fd_out);
     }
@@ -324,7 +324,7 @@ int execute_one(ast_node *head) {
         if (cmds != 2) {
             fprintf(stderr, "ping: usage: exactly 2 args\n");
         }
-        pingg(head->command_args_head->command, head->command_args_head->next->command);
+        callping(head->command_args_head->command, head->command_args_head->next->command);
         handle_close(fd_in, fd_out);
     }
 

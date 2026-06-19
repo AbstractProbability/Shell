@@ -159,7 +159,7 @@ void grant_foreground(jobs_list *temp) {
     tcsetpgrp(STDIN_FILENO, getpgrp());
 }
 
-void fgg(int job_num) {
+void callfg(int job_num) {
     jobs_list *temp;
     if (job_num == -1) {
         temp = background_jobs_tail;
@@ -188,7 +188,7 @@ void fgg(int job_num) {
     }
 }
 
-void bgg(int job_num) {
+void callbg(int job_num) {
     if (job_num == -1) {
         jobs_list *temp = background_jobs_tail;
         while (temp != NULL && (check_job(temp) != STOPPED)) {
