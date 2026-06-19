@@ -1,8 +1,5 @@
 #include "../include/common.h"
-#include "../include/cd.h"
-#include "../include/reveal.h"
 #include "../include/execute.h"
-#include "../include/jobs.h"
 
 jobs_list *background_jobs_head = NULL;
 jobs_list *background_jobs_tail = NULL;

@@ -4,7 +4,7 @@ CFLAGS = -Wall -g -Iinclude -std=c99 -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=7
 TARGET = shell.out
 
 # 2. Add .o files
-OBJECTS = main.o parser.o tokeniser.o cd.o reveal.o jobs.o execute.o
+OBJECTS = main.o parser.o cd.o reveal.o jobs.o execute.o
 
 # 3. Add Rules
 # Default rule to build the program
@@ -14,19 +14,13 @@ all: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJECTS)
 
-# Compilation rules with updated dependencies:
-
 # main.o
-main.o: src/main.c include/common.h include/parser.h include/tokeniser.h include/cd.h include/reveal.h include/execute.h include/jobs.h
+main.o: src/main.c include/common.h include/execute.h
 	$(CC) $(CFLAGS) -c src/main.c
 
 # parser.o
-parser.o: src/parser.c include/parser.h include/tokeniser.h include/common.h
+parser.o: src/parser.c include/parser.h include/common.h
 	$(CC) $(CFLAGS) -c src/parser.c
-
-# tokeniser.o
-tokeniser.o: src/tokeniser.c include/tokeniser.h include/common.h
-	$(CC) $(CFLAGS) -c src/tokeniser.c
 
 # cd.o
 cd.o: src/cd.c include/cd.h
@@ -36,7 +30,7 @@ cd.o: src/cd.c include/cd.h
 reveal.o: src/reveal.c include/reveal.h
 	$(CC) $(CFLAGS) -c src/reveal.c
 
-#jobs.o
+# jobs.o
 jobs.o: src/jobs.c include/jobs.h
 	$(CC) $(CFLAGS) -c src/jobs.c
 

@@ -2,7 +2,12 @@
 #define PARSER_H
 
 #include "common.h"
-#include "tokeniser.h"
+#include <ctype.h>
+
+typedef struct token_list_node {
+    char *token;
+    struct token_list_node *next;
+} token_list_node;
 
 typedef struct arg_node {
     char *command;
@@ -19,6 +24,13 @@ typedef struct ast_node {
     int background;
     struct ast_node *next;
 } ast_node;
+
+// checks special char except whitespace
+int is_special(char c);
+
+// tokenise the input string
+// by spaces and group special characters
+token_list_node *tokenise(char *input_string);
 
 // return valid ast, else grammar error
 ast_node* build_ast(token_list_node *token_head);
