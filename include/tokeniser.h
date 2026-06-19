@@ -1,5 +1,5 @@
-#ifndef tokeniser
-#define tokeniser
+#ifndef TOKENISER_H
+#define TOKENISER_H
 
 #include "common.h"
 #include <ctype.h>

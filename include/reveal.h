@@ -1,5 +1,5 @@
-#ifndef reveal
-#define reveal
+#ifndef REVEAL_H
+#define REVEAL_H
 
 #include "common.h"
 #include "parser.h"
@@ -11,3 +11,4 @@ void list_directory(int a, int l);
 void reveall(ast_node *head, char *curr_dir, char *parent_dir, char *prev_dir) ;
 
 #endif
+

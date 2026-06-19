@@ -1,5 +1,5 @@
-#ifndef jobs
-#define jobs
+#ifndef JOBS_H
+#define JOBS_H
 
 #include "common.h"
 // #include "parser.h"

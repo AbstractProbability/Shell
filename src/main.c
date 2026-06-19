@@ -1,6 +1,4 @@
 #include "../include/common.h"
-#include "../include/tokeniser.h"
-#include "../include/parser.h"
 #include "../include/cd.h"
 #include "../include/reveal.h"
 #include "../include/execute.h"
@@ -40,21 +38,6 @@ void prompt(void) {
     }
     printf("<%s@%s:%s> ", username, hostname, ac_directory);
     free(temp);
-}
-
-void handle_input(char *input) {
-    token_list_node *token_list_head = tokenise(input);
-    printf("tokened!\n");
-    ast_node *ast_head = build_ast(token_list_head);
-    if (ast_head == NULL) {
-        return;
-    }
-    printf("parsed!\n");
-    execute_all(ast_head);
-    printf("executed!\n");
-    log_store(input);
-    printf("logged!\n");
-    // check_list();
 }
 
 int main(int argc, char *argv[]) {
@@ -102,7 +85,7 @@ int main(int argc, char *argv[]) {
         }
         current_command = input;
         check_list();
-        handle_input(input);
+        executor(input);
 
         current_command = NULL;
         free(input);

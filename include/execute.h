@@ -1,5 +1,5 @@
-#ifndef execute
-#define execute
+#ifndef EXECUTE_H
+#define EXECUTE_H
 
 #include "common.h"
 #include "parser.h"
@@ -36,4 +36,7 @@ int execute_one(ast_node *head);
 // execute all commands in list
 int execute_all(ast_node *head);
 
+void executor(char *string);
+
 #endif
+

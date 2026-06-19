@@ -295,7 +295,7 @@ int execute_one(ast_node *head) {
     handle_redirect(&fd_in, &fd_out, head);
 
     if (strcmp(head->command, "cd") == 0) {
-        callcd(head->command_args_head, head->command_args_head->next, &parent_dir, &curr_dir, &prev_dir);
+        callcd(head->command_args_head, &parent_dir, &curr_dir, &prev_dir);
         handle_close(fd_in, fd_out);
     }
     else if (strcmp(head->command, "fg") == 0) {
@@ -324,7 +324,7 @@ int execute_one(ast_node *head) {
         if (cmds != 2) {
             fprintf(stderr, "ping: usage: exactly 2 args\n");
         }
-        callping(head->command_args_head->command, head->command_args_head->next->command);
+        callping(head->command_args_head->command, head->command_args_head->next_arg->command);
         handle_close(fd_in, fd_out);
     }
 
@@ -421,6 +421,7 @@ int execute_all(ast_node *head) {
 
         for (int i = 0; i<cmds; i++) {
             if (strcmp(commands[i]->command, "cd") == 0) {
+                // puts("execute all cd");
                 execute_one(commands[i]);
                 continue;
             }
@@ -507,5 +508,19 @@ int execute_all(ast_node *head) {
         temp = temp2->next;
     }
     return 0;
+}
+
+void executor(char *input) {
+    token_list_node *token_list_head = tokenise(input);
+    printf("tokened!\n");
+    ast_node *ast_head = build_ast(token_list_head);
+    if (ast_head == NULL) {
+        return;
+    }
+    printf("parsed!\n");
+    execute_all(ast_head);
+    printf("executed!\n");
+    log_store(input);
+    printf("logged!\n");
 }
 
