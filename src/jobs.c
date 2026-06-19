@@ -3,23 +3,15 @@
 #include "../include/parser.h"
 
 static int string_to_int(char *string) {
-    int i = 0;
-    for (size_t j = 0; j<strlen(string); j++) {
-        if (string[j] < 48 || string[j] > 57) return -1;
+    if (!string || *string == '\0') {
+        return -1;
     }
-    while(string[i] != '\0') i++;
-    i--;
-    int coeff = 1;
-    while(i) {
-        coeff *= 10;
-        i--;
+    char **endptr = NULL;
+    int ret = (int) strtol(string, endptr, 10);
+    if (**endptr != '\0') {
+        return -1;
     }
-    int ret_int = 0;
-    while (coeff) {
-        ret_int += (string[i]-48) * coeff;
-        coeff /= 10; i++;
-    }
-    return ret_int;
+    return ret;
 }
 
 static jobs_list *create_job_string(char *string, int pid, int status) {
