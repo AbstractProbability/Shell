@@ -49,9 +49,9 @@ log_node* create_log_node() {
     return newnode;
 }
 
-void log_file_write() {
+void logfile_write() {
     log_node *temp = log_head;
-    FILE *f = fopen(log_file, "w+");
+    FILE *f = fopen(logfile, "w+");
     while (temp != NULL) {
         fwrite(temp->string, sizeof(char), strlen(temp->string), f);
         //fwrite("\n", sizeof(char), 1, f);
@@ -65,7 +65,7 @@ void log_store2(char *input) {
 
     if (log_head == NULL) {
         log_head = create_log_node();
-        log_head->string = (char*) malloc(sizeof(char) * MAX_CHARS);
+        log_head->string = (char*) malloc(sizeof(char) * (MAX_CHARS+1));
         strcpy(log_head->string, input);
         curr_logs++;
         return;
@@ -74,18 +74,18 @@ void log_store2(char *input) {
     if (strcmp(log_head->string, input) == 0) {
         return;
     }
-    
+
     temp = create_log_node();
-    temp->string = (char *) malloc(sizeof(char) * MAX_CHARS);
+    temp->string = (char *) malloc(sizeof(char) * (MAX_CHARS+1));
     strcpy(temp->string, input);
     temp->next = log_head;
     log_head = temp;
     curr_logs++;
 
     if (curr_logs > 15) {
-        while (temp->next->next != NULL) 
+        while (temp->next->next != NULL)
             temp = temp->next;
-        
+
         free(temp->next);
         temp->next = NULL;
         curr_logs = 15;
@@ -94,8 +94,8 @@ void log_store2(char *input) {
 }
 
 void log_list_init() {
-    if (access(log_file, F_OK) == 0) {
-        FILE *f = fopen(log_file, "r");
+    if (access(logfile, F_OK) == 0) {
+        FILE *f = fopen(logfile, "r");
         char *str = NULL;
         size_t input_length = 0;
         while (getline(&str, &input_length, f) >= 0) {
@@ -128,33 +128,33 @@ void log_store(char *input) {
 
     if (log_head == NULL) {
         log_head = create_log_node();
-        log_head->string = (char*) malloc(sizeof(char) * MAX_CHARS);
+        log_head->string = (char*) malloc(sizeof(char) * (MAX_CHARS+1));
         strcpy(log_head->string, input);
         curr_logs++;
-        log_file_write();
+        logfile_write();
         return;
     }
 
     if (strcmp(log_head->string, input) == 0) {
         return;
     }
-    
+
     temp = create_log_node();
-    temp->string = (char *) malloc(sizeof(char) * MAX_CHARS);
+    temp->string = (char *) malloc(sizeof(char) * (MAX_CHARS+1));
     strcpy(temp->string, input);
     temp->next = log_head;
     log_head = temp;
     curr_logs++;
 
     if (curr_logs > 15) {
-        while (temp->next->next != NULL) 
+        while (temp->next->next != NULL)
             temp = temp->next;
-        
+
         free(temp->next);
         temp->next = NULL;
         curr_logs = 15;
     }
-    log_file_write();
+    logfile_write();
     return;
 }
 
@@ -177,7 +177,7 @@ void log_purge(void) {
     }
     log_head = NULL;
     curr_logs = 0;
-    log_file_write();
+    logfile_write();
     return;
 }
 
@@ -212,7 +212,7 @@ void handle_redirect(int *p_fd_in, int *p_fd_out, ast_node *head) {
     if (head->output_filename != NULL) {
         if (head->output_file_mode == 1)
             fd_out = open(head->output_filename, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-        else 
+        else
             fd_out = open(head->output_filename, O_WRONLY | O_APPEND | O_CREAT, 0777);
         if (fd_out < 0) {
             fprintf(stderr, "Unable to create file for writing\n");
@@ -223,7 +223,7 @@ void handle_redirect(int *p_fd_in, int *p_fd_out, ast_node *head) {
 }
 
 void handle_execution(ast_node *head, char **args_list) {
-    char *command = malloc(sizeof(char) * MAX_CHARS);
+    char *command = malloc(sizeof(char) * (MAX_CHARS+1));
     char path1[] = "/bin/";
     char path2[] = "/usr/bin/";
 
@@ -237,7 +237,7 @@ void handle_execution(ast_node *head, char **args_list) {
     strcat(command, head->command);
     args_list[0] = command;
     execv(command, args_list);
-    
+
     // exec using path2
     strcpy(command, path2);
     strcat(command, head->command);
@@ -297,7 +297,7 @@ int execute_one(ast_node *head) {
     handle_redirect(&fd_in, &fd_out, head);
 
     if (strcmp(head->command, "hop") == 0) {
-        hopp(head->command_args_head, head->command_args_tail, &parent_directory, &current_directory, &previous_directory);
+        hopp(head->command_args_head, head->command_args_tail, &parent_dir, &curr_dir, &prev_dir);
         handle_close(fd_in, fd_out);
     }
     else if (strcmp(head->command, "fg") == 0) {
@@ -341,19 +341,19 @@ int execute_one(ast_node *head) {
     }
 
     else if (strcmp(head->command, "reveal") == 0) {
-        reveall(head, current_directory, parent_directory, previous_directory);
+        reveall(head, curr_dir, parent_dir, prev_dir);
         handle_close(fd_in, fd_out);
         exit(0);
     }
-    
+
     else if (strcmp(head->command, "log") == 0) {
         if (head->command_args_head == NULL) {
             if (log_head != NULL)
             log_print(log_head);
-        } 
+        }
         else if (strcmp(head->command_args_head->command, "purge") == 0) {
             log_purge();
-        } 
+        }
         else if (strcmp(head->command_args_head->command, "execute") == 0) {
             if (head->command_args_head->next_arg != NULL) {
                 log_execute(atoi(head->command_args_head->next_arg->command));
@@ -361,13 +361,13 @@ int execute_one(ast_node *head) {
                 fprintf(stderr, "execute: error executing log execute\n");
             }
             exit(0);
-        } 
+        }
         else {
             fprintf(stderr, "execute: error executing log\n");
         }
         handle_close(fd_in, fd_out);
     }
-    
+
     else {
         arg_node *temp = head->command_args_head, *temp2;
         temp2 = temp;
@@ -376,13 +376,13 @@ int execute_one(ast_node *head) {
             size++;
             temp = temp->next_arg;
         }
-        
+
         temp = temp2;
         char **args_list = (char**) malloc(sizeof(char*) * size);
-        
+
         size = 0;
         size++;
-        
+
         while(temp != NULL) {
             args_list[size] = temp->command;
             temp = temp->next_arg; size++;
@@ -393,7 +393,7 @@ int execute_one(ast_node *head) {
         handle_close(fd_in, fd_out);
         exit(1);
     }
-    
+
     return 0;
 }
 
@@ -457,7 +457,7 @@ int execute_all(ast_node *head) {
                 if (i != cmds-1) {
                     dup2(pipes[i][1], STDOUT_FILENO);
                 }
-                
+
                 for (int j = 0; j<cmds-1; j++) {
                     close(pipes[j][0]);
                     close(pipes[j][1]);
@@ -510,3 +510,4 @@ int execute_all(ast_node *head) {
     }
     return 0;
 }
+

@@ -28,7 +28,7 @@ void list_directory(int a, int l) {
 }
 
 // main reveal call
-void reveall(ast_node *head, char *current_directory, char *parent_directory, char *previous_directory) {
+void reveall(ast_node *head, char *curr_dir, char *parent_dir, char *prev_dir) {
     arg_node *temp = head->command_args_head;
     int l = 0, a = 0, bad = 0;
     while (temp != NULL && temp->command[0] == '-' && temp->command[1] != '\0') {
@@ -74,23 +74,23 @@ void reveall(ast_node *head, char *current_directory, char *parent_directory, ch
     if (i == 0 || strcmp(temp->command, ".") == 0)
     {
         // list current directory
-        chdir_ret = chdir(current_directory);
+        chdir_ret = chdir(curr_dir);
     }
     else 
     {
         if (strcmp(temp->command, "~") == 0)
         {
             // list parent directory
-            chdir_ret = chdir(parent_directory);
+            chdir_ret = chdir(parent_dir);
         }
         else if (strcmp(temp->command, "-") == 0)
         {
             // list previous directory
-            if (previous_directory[0] == '\0') {
+            if (prev_dir[0] == '\0') {
                 fprintf(stderr, "No such directory!\n");
                 return;
             }
-            chdir_ret = chdir(previous_directory);
+            chdir_ret = chdir(prev_dir);
         }
         else if (strcmp(temp->command, "..") == 0)
         {
@@ -105,10 +105,10 @@ void reveall(ast_node *head, char *current_directory, char *parent_directory, ch
     
     if (chdir_ret) {
         fprintf(stderr, "No such directory!\n");
-        chdir(current_directory);
+        chdir(curr_dir);
         return;
     }
 
     list_directory(a, l);
-    chdir(current_directory);
+    chdir(curr_dir);
 }

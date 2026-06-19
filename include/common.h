@@ -14,20 +14,20 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
-#define MAX_CHARS 5000
+#define MAX_CHARS 4096
 #define RUNNING 1
 #define STOPPED 2
 #define NORMAL_TERMINATION 0
 #define ABNORMAL_TERMINATION -1
 #define NO_STATUS -2
 
-extern char *computer_name;
-extern char *user_name;
-extern char *current_directory;
-extern char *previous_directory;
-extern char *parent_directory; //parent directory is the one where shell is opened
+extern char hostname[];
+extern char username[];
+extern char *curr_dir;
+extern char *prev_dir;
+extern char *parent_dir; //parent directory is the one where shell is opened
 extern char *current_command;
-extern char *log_file;
+extern char *logfile;
 extern int foreground_pgid;
 extern int shell_pgid;
 
@@ -38,3 +38,4 @@ void pingg(char *pid_str, char *signum_str);
 void ctrld();
 
 #endif
+

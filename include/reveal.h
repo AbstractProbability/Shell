@@ -8,6 +8,6 @@
 void list_directory(int a, int l);
 
 // main reveal call
-void reveall(ast_node *head, char *current_directory, char *parent_directory, char *previous_directory) ;
+void reveall(ast_node *head, char *curr_dir, char *parent_dir, char *prev_dir) ;
 
 #endif

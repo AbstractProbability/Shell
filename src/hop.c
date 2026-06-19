@@ -1,17 +1,17 @@
 #include "../include/hop.h"
 
-void update_dirs(char **p_current_directory, char **p_previous_directory) {
-    free(*p_previous_directory);
-    *p_previous_directory = *p_current_directory;
+void update_dirs(char **p_curr_dir, char **p_prev_dir) {
+    free(*p_prev_dir);
+    *p_prev_dir = *p_curr_dir;
 
-    char *cdir = malloc(MAX_CHARS * sizeof(char));
+    char *cdir = malloc((MAX_CHARS+1) * sizeof(char));
     getcwd(cdir, MAX_CHARS);
 
-    *p_current_directory = cdir;
-    
+    *p_curr_dir = cdir;
+
 }
 
-void hopp(arg_node *args_head, arg_node *args_tail, char **p_parent_directory, char **p_current_directory, char **p_previous_directory) {
+void hopp(arg_node *args_head, arg_node *args_tail, char **p_parent_dir, char **p_curr_dir, char **p_prev_dir) {
     int arg_size = 0;
     arg_node *temp = args_head;
     while(temp != NULL) {
@@ -19,34 +19,34 @@ void hopp(arg_node *args_head, arg_node *args_tail, char **p_parent_directory, c
         temp = temp->next_arg;
     }
 
-    char *parent_directory = *p_parent_directory, *previous_directory = *p_previous_directory;
+    char *parent_dir = *p_parent_dir, *prev_dir = *p_prev_dir;
     temp = args_head;
 
     if (arg_size == 0) {
         // change to home directory
-        if (chdir(parent_directory)) return;
-        update_dirs(p_current_directory, p_previous_directory);
+        if (chdir(parent_dir)) return;
+        update_dirs(p_curr_dir, p_prev_dir);
     }
     while (temp != NULL) {
-        if (strcmp("~", temp->command) == 0) 
+        if (strcmp("~", temp->command) == 0)
         {
             // change to home directory
-            if (chdir(parent_directory)) return;
+            if (chdir(parent_dir)) return;
         }
-        else if (strcmp(temp->command, ".") == 0) 
+        else if (strcmp(temp->command, ".") == 0)
         {
             return;
         }
-        else if (strcmp(temp->command, "..") == 0) 
+        else if (strcmp(temp->command, "..") == 0)
         {
             if (chdir("..")) return;
         }
-        else if (strcmp(temp->command, "-") == 0) 
+        else if (strcmp(temp->command, "-") == 0)
         {
-            if (strcmp(previous_directory, "") == 0) {
+            if (strcmp(prev_dir, "") == 0) {
                 return;
             } else {
-                if (chdir(previous_directory)) return;
+                if (chdir(prev_dir)) return;
             }
         }
         else
@@ -56,8 +56,9 @@ void hopp(arg_node *args_head, arg_node *args_tail, char **p_parent_directory, c
                 return;
             }
         }
-        update_dirs(p_current_directory, p_previous_directory);
+        update_dirs(p_curr_dir, p_prev_dir);
         temp = temp->next_arg;
     }
-    
+
 }
+

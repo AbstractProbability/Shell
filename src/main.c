@@ -9,23 +9,23 @@
 jobs_list *background_jobs_head = NULL;
 jobs_list *background_jobs_tail = NULL;
 
-char *computer_name;
-char *user_name;
-char *current_directory;
-char *previous_directory;
-char *parent_directory; //parent directory is the one where shell is opened
+char hostname[MAX_CHARS+1];
+char username[MAX_CHARS+1];
+char *curr_dir;
+char *prev_dir;
+char *parent_dir; //parent directory is the one where shell is opened
 char *current_command = NULL;
-char *log_file;
+char *logfile;
 int foreground_pgid = 0;
 int shell_pgid = 0;
 
 void prompt(void) {
-    char *ac_directory = malloc(sizeof(char) * MAX_CHARS);
-    strcpy(ac_directory, current_directory);
+    char *ac_directory = malloc(sizeof(char) * (MAX_CHARS+1));
+    strcpy(ac_directory, curr_dir);
     char *temp = ac_directory;
     int i = 0, f = 1;
-    while (parent_directory[i] != '\0') {
-        if (ac_directory[i] == '\0' || ac_directory[i] != parent_directory[i]) {
+    while (parent_dir[i] != '\0') {
+        if (ac_directory[i] == '\0' || ac_directory[i] != parent_dir[i]) {
             f = 0;
             break;
         }
@@ -38,38 +38,38 @@ void prompt(void) {
             ac_directory = ac_directory + i-1;
         }
     }
-    printf("<%s@%s:%s> ", user_name, computer_name, ac_directory);
+    printf("<%s@%s:%s> ", username, hostname, ac_directory);
     free(temp);
 }
 
 void handle_input(char *input) {
     token_list_node *token_list_head = tokenise(input);
-    
+    printf("tokened!\n");
     ast_node *ast_head = build_ast(token_list_head);
     if (ast_head == NULL) {
         return;
     }
+    printf("parsed!\n");
     execute_all(ast_head);
+    printf("executed!\n");
     log_store(input);
-    //check_list();
+    printf("logged!\n");
+    // check_list();
 }
 
 int main(int argc, char *argv[]) {
-    //char *str = NULL;
-    computer_name = malloc(sizeof(char) * MAX_CHARS);
-    user_name = malloc(sizeof(char) * MAX_CHARS);
-    gethostname(computer_name, MAX_CHARS);
-    getlogin_r(user_name, MAX_CHARS);
+    gethostname(hostname, MAX_CHARS);
+    getlogin_r(username, MAX_CHARS);
 
-    previous_directory = malloc(sizeof(char) * MAX_CHARS);
-    current_directory = malloc(sizeof(char) * MAX_CHARS);
-    parent_directory = malloc(sizeof(char) * MAX_CHARS);
-    previous_directory[0] = '\0';
-    getcwd(parent_directory, MAX_CHARS);
-    getcwd(current_directory, MAX_CHARS);
-    log_file = malloc(sizeof(char) * MAX_CHARS);
-    strcpy(log_file, current_directory);
-    strcat(log_file, "/log_file");
+    prev_dir = malloc(sizeof(char) * (MAX_CHARS+1));
+    curr_dir = malloc(sizeof(char) * (MAX_CHARS+1));
+    parent_dir = malloc(sizeof(char) * (MAX_CHARS+1));
+    prev_dir[0] = '\0';
+    getcwd(parent_dir, MAX_CHARS);
+    getcwd(curr_dir, MAX_CHARS);
+    logfile = malloc(sizeof(char) * (MAX_CHARS+1));
+    strcpy(logfile, curr_dir);
+    strcat(logfile, "/logfile");
 
     signal(SIGINT, SIG_IGN);
     signal(SIGQUIT, SIG_IGN);
@@ -83,12 +83,13 @@ int main(int argc, char *argv[]) {
     tcsetpgrp(STDIN_FILENO, shell_pgid);
 
     log_list_init();
-    
+
     while(1) {
         prompt();
         char *input = NULL;
         size_t input_length = 0;
         int x = getline(&input, &input_length, stdin);
+        // printf("command: %s\n", input);
         if (x == -1) {
             if (feof(stdin)) {
                 ctrld();
@@ -108,3 +109,4 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
+
