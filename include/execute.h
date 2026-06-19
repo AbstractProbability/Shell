@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "parser.h"
-#include "hop.h"
+#include "cd.h"
 #include "reveal.h"
 #include "jobs.h"
 

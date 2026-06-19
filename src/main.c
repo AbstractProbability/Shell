@@ -1,7 +1,7 @@
 #include "../include/common.h"
 #include "../include/tokeniser.h"
 #include "../include/parser.h"
-#include "../include/hop.h"
+#include "../include/cd.h"
 #include "../include/reveal.h"
 #include "../include/execute.h"
 #include "../include/jobs.h"

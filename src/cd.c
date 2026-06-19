@@ -1,4 +1,4 @@
-#include "../include/hop.h"
+#include "../include/cd.h"
 
 void update_dirs(char **p_curr_dir, char **p_prev_dir) {
     free(*p_prev_dir);
@@ -11,7 +11,7 @@ void update_dirs(char **p_curr_dir, char **p_prev_dir) {
 
 }
 
-void hopp(arg_node *args_head, arg_node *args_tail, char **p_parent_dir, char **p_curr_dir, char **p_prev_dir) {
+void callcd(arg_node *args_head, arg_node *args_tail, char **p_parent_dir, char **p_curr_dir, char **p_prev_dir) {
     int arg_size = 0;
     arg_node *temp = args_head;
     while(temp != NULL) {

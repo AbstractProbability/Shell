@@ -296,8 +296,8 @@ int execute_one(ast_node *head) {
     int fd_in = -1, fd_out = -1;
     handle_redirect(&fd_in, &fd_out, head);
 
-    if (strcmp(head->command, "hop") == 0) {
-        hopp(head->command_args_head, head->command_args_tail, &parent_dir, &curr_dir, &prev_dir);
+    if (strcmp(head->command, "cd") == 0) {
+        callcd(head->command_args_head, head->command_args_tail, &parent_dir, &curr_dir, &prev_dir);
         handle_close(fd_in, fd_out);
     }
     else if (strcmp(head->command, "fg") == 0) {
@@ -422,7 +422,7 @@ int execute_all(ast_node *head) {
         int pgid = 0;
 
         for (int i = 0; i<cmds; i++) {
-            if (strcmp(commands[i]->command, "hop") == 0) {
+            if (strcmp(commands[i]->command, "cd") == 0) {
                 execute_one(commands[i]);
                 continue;
             }
