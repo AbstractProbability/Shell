@@ -263,18 +263,16 @@ void pingg(char *pid_str, char *signum_str) {
     }
     signum %= 32;
 
-    jobs_list *temp = background_jobs_head;
-    while(temp != NULL) {
-        if (temp->pid == pid) {
-            if (check_job(temp) == NORMAL_TERMINATION || check_job(temp) == ABNORMAL_TERMINATION) {
-                break;
-            } else {
-                kill(-pid, signum);
-                printf("Sent signal %d to process with pid %d\n", signum, pid);
-                return;
-            }
+    for (jobs_list *temp = background_jobs_head; temp!=NULL; temp = temp->next) {
+        if (temp->pid != pid) {
+            continue;
         }
-        temp = temp->next;
+        if (check_job(temp) == NORMAL_TERMINATION || check_job(temp) == ABNORMAL_TERMINATION) {
+            break;
+        }
+        kill(-pid, signum);
+        printf("Sent signal %d to process with pid %d\n", signum, pid);
+        return;
     }
     fprintf(stderr, "No such process found\n");
 }
@@ -297,7 +295,7 @@ int execute_one(ast_node *head) {
     handle_redirect(&fd_in, &fd_out, head);
 
     if (strcmp(head->command, "cd") == 0) {
-        callcd(head->command_args_head, head->command_args_tail, &parent_dir, &curr_dir, &prev_dir);
+        callcd(head->command_args_head, head->command_args_head->next, &parent_dir, &curr_dir, &prev_dir);
         handle_close(fd_in, fd_out);
     }
     else if (strcmp(head->command, "fg") == 0) {
@@ -326,7 +324,7 @@ int execute_one(ast_node *head) {
         if (cmds != 2) {
             fprintf(stderr, "ping: usage: exactly 2 args\n");
         }
-        pingg(head->command_args_head->command, head->command_args_tail->command);
+        pingg(head->command_args_head->command, head->command_args_head->next->command);
         handle_close(fd_in, fd_out);
     }
 
@@ -404,7 +402,7 @@ int execute_all(ast_node *head) {
         ast_node *temp2 = temp;
 
         int cmds = 1;
-        while (temp2 != NULL && temp2->male) {
+        while (temp2 != NULL && temp2->pipe_send) {
             cmds++;
             temp2 = temp2->next;
         }
