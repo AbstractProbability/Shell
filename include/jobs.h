@@ -18,7 +18,7 @@ extern jobs_list *background_jobs_tail;
 void add_job_string(char *job, int pid, int status);
 
 // remove any completed jobs from jobs list
-void check_list(void);
+void clean_list(void);
 
 // list all backgound jobs
 void calljobs(void);

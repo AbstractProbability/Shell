@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
             }
         }
         current_command = input;
-        check_list();
+        clean_list();
         executor(input);
 
         current_command = NULL;

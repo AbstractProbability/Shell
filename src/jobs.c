@@ -134,7 +134,7 @@ void add_job_string(char *job, int pid, int status) {
 }
 
 // checks the bgjobs list if any jobs are done, and prints them as so.
-void check_list(void) {
+void clean_list(void) {
     jobs_list *temp = background_jobs_head;
 
     while (temp != NULL) {
@@ -155,7 +155,7 @@ void check_list(void) {
 }
 
 void calljobs(void) {
-    // check_list();
+    // clean_list();
     // correct_serial_numbers();
     if (background_jobs_head == NULL) {
         printf("No bg jobs\n");
