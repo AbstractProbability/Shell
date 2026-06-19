@@ -1,9 +1,6 @@
 #ifndef JOBS_H
 #define JOBS_H
 
-#include "common.h"
-// #include "parser.h"
-
 typedef struct jobs_list {
     int serial_num;
     int pid;
@@ -17,29 +14,11 @@ typedef struct jobs_list {
 extern jobs_list *background_jobs_head;
 extern jobs_list *background_jobs_tail;
 
-// create an empty job
-// jobs_list *create_job(ast_node *head, int pid, int status);
-
-// create an empty job, with job arg as a string
-jobs_list *create_job_string(char *string, int pid, int status);
-
-// remove a job from backround list
-void remove_job(jobs_list *temp);
-
-// add a job to the background list
-// void add_job(ast_node *head, int pid, int status);
-
 // add a job passed as a string to the bglist
 void add_job_string(char *job, int pid, int status);
 
-// check if a job doesnt exist, or exists and is
-// exited- normally: 0, abnormally: -1
-// running : 1
-// stopped : 2
-int check_job(jobs_list *temp);
-
 // remove any completed jobs from jobs list
-void check_list();
+void check_list(void);
 
 // list all backgound jobs
 void calljobs(void);

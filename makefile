@@ -4,7 +4,7 @@ CFLAGS = -Wall -g -Iinclude -std=c99 -D_POSIX_C_SOURCE=200809L -D_XOPEN_SOURCE=7
 TARGET = shell.out
 
 # 2. Add .o files
-OBJECTS = main.o parser.o cd.o reveal.o jobs.o execute.o
+OBJECTS = main.o parser.o cd.o reveal.o jobs.o execute.o log.o
 
 # 3. Add Rules
 # Default rule to build the program
@@ -35,9 +35,11 @@ jobs.o: src/jobs.c include/jobs.h
 	$(CC) $(CFLAGS) -c src/jobs.c
 
 # execute.o
-execute.o: src/execute.c include/execute.h
+execute.o: src/execute.c include/execute.h include/log.h
 	$(CC) $(CFLAGS) -c src/execute.c
 
+log.o: src/log.c include/execute.h include/log.h
+	$(CC) $(CFLAGS) -c src/log.c
 
 # 3. Cleanup
 .PHONY: clean

@@ -1,4 +1,6 @@
+#include "../include/common.h"
 #include "../include/jobs.h"
+#include "../include/parser.h"
 
 static int string_to_int(char *string) {
     int i = 0;
@@ -20,7 +22,7 @@ static int string_to_int(char *string) {
     return ret_int;
 }
 
-jobs_list *create_job_string(char *string, int pid, int status) {
+static jobs_list *create_job_string(char *string, int pid, int status) {
     jobs_list *newnode = (jobs_list *) malloc(sizeof(jobs_list));
     newnode->next = NULL;
     newnode->prev = NULL;
@@ -41,7 +43,7 @@ jobs_list *create_job_string(char *string, int pid, int status) {
     return newnode;
 }
 
-void remove_job(jobs_list *temp) {
+static void remove_job(jobs_list *temp) {
     if (temp == NULL) return;
 
     if (temp == background_jobs_head) {
@@ -71,6 +73,49 @@ void remove_job(jobs_list *temp) {
     free(temp);
 }
 
+
+// check if a job doesnt exist, or exists and returns
+// exited : normally: 0, abnormally: -1
+// running : 1
+// stopped : 2
+static int check_job(jobs_list *temp) {
+    int proc_status;
+    int x = waitpid(-temp->pid, &proc_status, WNOHANG);
+
+    if (x == 0) {
+        return temp->status;
+    } else if (x > 0) {
+        if (WIFSTOPPED(proc_status)) return STOPPED;
+        else if (WIFEXITED(proc_status)) return NORMAL_TERMINATION;
+        else if (WIFSIGNALED(proc_status)) return ABNORMAL_TERMINATION;
+        else return RUNNING;
+    } else {
+        return NORMAL_TERMINATION;
+    }
+}
+
+
+static int compar(const void *a, const void *b) {
+    jobs_list *ja = * ((jobs_list **)a);
+    jobs_list *jb = * ((jobs_list **)b);
+    return strcmp(ja->command, jb->command);
+}
+
+static void grant_foreground(jobs_list *temp) {
+    printf("%s\n", temp->command);
+    kill(-temp->pid, SIGCONT);
+    tcsetpgrp(STDIN_FILENO, temp->pid);
+    int st;
+    int x = waitpid(-temp->pid, &st, WUNTRACED);
+    if (x > 0) {
+        if (WIFSTOPPED(st)) {
+            temp->status = STOPPED;
+            printf("[%d] Stopped %s\n", temp->serial_num, temp->command);
+        }
+    }
+    tcsetpgrp(STDIN_FILENO, getpgrp());
+}
+
 void add_job_string(char *job, int pid, int status) {
     jobs_list *temp = create_job_string(job, pid, status);
 
@@ -88,24 +133,8 @@ void add_job_string(char *job, int pid, int status) {
     return;
 }
 
-int check_job(jobs_list *temp) { // return 1 if running, 2 if stopped, 0 if terminated normally, -1 if terminated abnormally
-    int proc_status;
-    int x = waitpid(-temp->pid, &proc_status, WNOHANG);
-
-    if (x == 0) {
-        return temp->status;
-    } else if (x > 0) {
-        if (WIFSTOPPED(proc_status)) return STOPPED;
-        else if (WIFEXITED(proc_status)) return NORMAL_TERMINATION;
-        else if (WIFSIGNALED(proc_status)) return ABNORMAL_TERMINATION;
-        else return RUNNING;
-    } else {
-        return NORMAL_TERMINATION;
-    }
-}
-
 // checks the bgjobs list if any jobs are done, and prints them as so.
-void check_list() {
+void check_list(void) {
     jobs_list *temp = background_jobs_head;
 
     while (temp != NULL) {
@@ -113,24 +142,16 @@ void check_list() {
         if (x == NORMAL_TERMINATION) {
             printf("%s with pid %d exited normally\n", temp->command, temp->pid);
             jobs_list *p = temp;
-            temp = temp->next;
             remove_job(p);
         } else if (x == ABNORMAL_TERMINATION) {
             printf("%s with pid %d exited abnormally\n", temp->command, temp->pid);
             jobs_list *p = temp;
-            temp = temp->next;
             remove_job(p);
         } else {
             temp->status = x;
-            temp = temp->next;
         }
+        temp = temp->next;
     }
-}
-
-int compar(const void *a, const void *b) {
-    jobs_list *ja = * ((jobs_list **)a);
-    jobs_list *jb = * ((jobs_list **)b);
-    return strcmp(ja->command, jb->command);
 }
 
 void calljobs(void) {
@@ -162,21 +183,6 @@ void calljobs(void) {
         printf("[%d] : %s - %s\n", a[j]->pid, a[j]->command, status);
     }
     exit(0);
-}
-
-void grant_foreground(jobs_list *temp) {
-    printf("%s\n", temp->command);
-    kill(-temp->pid, SIGCONT);
-    tcsetpgrp(STDIN_FILENO, temp->pid);
-    int st;
-    int x = waitpid(-temp->pid, &st, WUNTRACED);
-    if (x > 0) {
-        if (WIFSTOPPED(st)) {
-            temp->status = STOPPED;
-            printf("[%d] Stopped %s\n", temp->serial_num, temp->command);
-        }
-    }
-    tcsetpgrp(STDIN_FILENO, getpgrp());
 }
 
 void callfg(char *job_num_string) {

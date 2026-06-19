@@ -1,7 +1,6 @@
 #ifndef REVEAL_H
 #define REVEAL_H
 
-#include "common.h"
 #include "parser.h"
 
 // list directory contents

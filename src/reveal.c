@@ -1,3 +1,4 @@
+#include "../include/common.h"
 #include "../include/reveal.h"
 
 int cmpdir(const struct dirent **a, const struct dirent **b) {
@@ -7,9 +8,6 @@ int cmpdir(const struct dirent **a, const struct dirent **b) {
 // list directory contents
 void list_directory(int a, int l) {
     struct dirent **namelist;
-    /*if (l) {
-
-    }*/
     int n = scandir(".", &namelist, NULL, cmpdir);
 
     for (int i = 0; i<n; i++) {
@@ -33,7 +31,7 @@ void reveall(ast_node *head, char *curr_dir, char *parent_dir, char *prev_dir) {
     int l = 0, a = 0, bad = 0;
     while (temp != NULL && temp->command[0] == '-' && temp->command[1] != '\0') {
         int i = 1;
-        
+
         while (temp->command[i] != '\0') {
             if (temp->command[i] != 'a' && temp->command[i] != 'l') {
                 bad = 1;
@@ -76,7 +74,7 @@ void reveall(ast_node *head, char *curr_dir, char *parent_dir, char *prev_dir) {
         // list current directory
         chdir_ret = chdir(curr_dir);
     }
-    else 
+    else
     {
         if (strcmp(temp->command, "~") == 0)
         {
@@ -97,12 +95,12 @@ void reveall(ast_node *head, char *curr_dir, char *parent_dir, char *prev_dir) {
             // list upper directory
             chdir_ret = chdir("..");
         }
-        else 
+        else
         {
             chdir_ret = chdir(temp->command);
         }
     }
-    
+
     if (chdir_ret) {
         fprintf(stderr, "No such directory!\n");
         chdir(curr_dir);
@@ -112,3 +110,4 @@ void reveall(ast_node *head, char *curr_dir, char *parent_dir, char *prev_dir) {
     list_directory(a, l);
     chdir(curr_dir);
 }
+

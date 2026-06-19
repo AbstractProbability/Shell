@@ -1,9 +1,6 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "common.h"
-#include <ctype.h>
-
 typedef struct token_list_node {
     char *token;
     struct token_list_node *next;

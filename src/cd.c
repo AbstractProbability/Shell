@@ -1,6 +1,6 @@
 #include "../include/cd.h"
 
-void update_dirs(char **p_curr_dir, char **p_prev_dir) {
+static void update_dirs(char **p_curr_dir, char **p_prev_dir) {
     free(*p_prev_dir);
     *p_prev_dir = *p_curr_dir;
 

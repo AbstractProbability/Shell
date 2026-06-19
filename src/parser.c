@@ -1,3 +1,6 @@
+#include <ctype.h>
+
+#include "../include/common.h"
 #include "../include/parser.h"
 
 // create empty arg_node

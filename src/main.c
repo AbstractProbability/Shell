@@ -1,5 +1,7 @@
 #include "../include/common.h"
 #include "../include/execute.h"
+#include "../include/jobs.h"    // for callexit()
+#include "../include/log.h"     // for log_list_init()
 
 jobs_list *background_jobs_head = NULL;
 jobs_list *background_jobs_tail = NULL;
