@@ -3,28 +3,6 @@
 #include "../include/common.h"
 #include "../include/parser.h"
 
-// create empty arg_node
-static arg_node* create_arg_node() {
-    arg_node *newNode = malloc(sizeof(arg_node));
-    newNode->command = NULL;
-    newNode->next_arg = NULL;
-    return newNode;
-}
-
-// create empty ast_node
-static ast_node* create_ast_node() {
-    ast_node *newNode = malloc(sizeof(ast_node));
-    newNode->command = NULL;
-    newNode->command_args_head = NULL;
-    newNode->input_filename = NULL;
-    newNode->output_filename = NULL;
-    newNode->output_file_mode = 0;
-    newNode->pipe_send = 0;
-    newNode->background = 0;
-    newNode->next = NULL;
-    return newNode;
-}
-
 static char SPECIAL_CHARS[] = {'&', '|', '>', '<', ';'};
 static int NUM_SPECIAL_CHARS = sizeof(SPECIAL_CHARS);
 
@@ -90,7 +68,7 @@ static void skip_till_dissimilar(char *tok_start, char **p_tok_end) {
     }
 }
 
-token_list_node *repair_list(
+static token_list_node *repair_list(
         token_list_node **p_ihead,
         token_list_node **p_itemp,
         token_list_node **p_temp)
@@ -144,7 +122,7 @@ static void tokenise_pass2(token_list_node *head) {
     }
 }
 
-void spill_tokens(token_list_node *head) {
+static void spill_tokens(token_list_node *head) {
     while (head != NULL) {
         printf("\"%s\" ", head->token);
         head = head->next;
@@ -159,29 +137,51 @@ token_list_node* tokenise(char *input_string) {
     return head;
 }
 
+// create empty arg_node
+static arg_node* create_arg_node() {
+    arg_node *newNode = malloc(sizeof(arg_node));
+    newNode->command = NULL;
+    newNode->next_arg = NULL;
+    return newNode;
+}
+
+// create empty ast_node
+static ast_node* create_ast_node() {
+    ast_node *newNode = malloc(sizeof(ast_node));
+    newNode->command = NULL;
+    newNode->command_args_head = NULL;
+    newNode->input_filename = NULL;
+    newNode->output_filename = NULL;
+    newNode->output_file_mode = 0;
+    newNode->pipe_send = 0;
+    newNode->background = 0;
+    newNode->next = NULL;
+    return newNode;
+}
+
+static int is_valid_token(token_list_node *token) {
+    int token_size = strlen(token->token);
+    char *it = token->token;
+    if (*it == '>'
+        && !(*(it+1) == '\0'
+            || (*(it+1) == '>' && token_len == 2)))
+    {
+        return 0;
+    }
+    if (*it != '>' && is_special(*it) && token_size > 1) {
+        return 0;
+    }
+    return 1;
+}
 
 // basic check: too many special characters in a token
 static int basic_check(token_list_node *head) {
     token_list_node *temp = head;
     while (temp != NULL) {
         int token_size = strlen(temp->token);
-        if (is_special(temp->token[0])) {
-            if (temp->token[0] == '>') {
-                if (token_size == 2) {
-                    if (temp->token[1] != '>') {
-                        fprintf(stdout, "Invalid Syntax!\n");
-                        return 1;
-                    }
-                } else if (token_size > 2) {
-                    fprintf(stdout, "Invalid Syntax!\n");
-                    return 1;
-                }
-            } else {
-                if (token_size > 1) {
-                    fprintf(stdout, "Invalid Syntax!\n");
-                    return 1;
-                }
-            }
+        if (!is_valid_token(temp)) {
+            fprintf(stdout, "Invalid Syntax!\n");
+            return 1;
         }
         temp = temp->next;
     }
@@ -201,11 +201,14 @@ ast_node* build_ast(token_list_node *token_head) {
 
     while (token_temp != NULL) {
         if (is_special(token_temp->token[0]) &&
-            input_symbol == 0 && output_symbol == 0 &&
-            newcmd == 0  && pipe == 0 &&
-            ast_temp->command != NULL
-        )
+            !(input_symbol == 0 && output_symbol == 0 &&
+            newcmd == 0 && pipe == 0 &&
+            ast_temp->command != NULL))
         {
+            fprintf(stdout, "Invalid Syntax!\n");
+            return NULL;
+        }
+        if (is_special(token_temp->token[0])) {
             if (token_temp->token[0] == '>') {
                 if (token_temp->token[1] == '\0') {
                     output_symbol = 1;
@@ -227,15 +230,13 @@ ast_node* build_ast(token_list_node *token_head) {
                     newcmd = 1;
                 }
             }
-        }
-        else if (is_special(token_temp->token[0]))
-        {
-            fprintf(stdout, "Invalid Syntax!\n");
-            return NULL;
-        }
-        else
-        {
-            if (input_symbol == 0 && output_symbol == 0) {
+        } else {
+            if (input_symbol != 0) {
+                ast_temp->input_filename = token_temp->token;
+            } else if (output_symbol != 0) {
+                ast_temp->output_filename = token_temp->token;
+                ast_temp->output_file_mode = output_symbol;
+            } else {
                 if (newcmd) {
                     ast_temp->next = create_ast_node();
                     ast_temp = ast_temp->next;
@@ -248,14 +249,6 @@ ast_node* build_ast(token_list_node *token_head) {
                         ast_temp->command_args_head = create_arg_node();
                         ast_temp->command_args_head->command = token_temp->token;
                     }
-                }
-            } else {
-                if (input_symbol != 0) {
-                    ast_temp->input_filename = token_temp->token;
-                }
-                if (output_symbol != 0) {
-                    ast_temp->output_filename = token_temp->token;
-                    ast_temp->output_file_mode = output_symbol;
                 }
             }
             input_symbol = 0; output_symbol = 0;

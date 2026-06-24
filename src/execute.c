@@ -8,7 +8,7 @@
 
 static void handle_redirect(int *p_fd_in, int *p_fd_out, ast_node *head) {
     int fd_in = *p_fd_in, fd_out = *p_fd_out;
-    if (head->input_filename != NULL) {
+    if (head->input_filename) {
         fd_in = open(head->input_filename, O_RDONLY);
         if (fd_in < 0) {
             fprintf(stderr, "No such file or directory!\n");
@@ -16,11 +16,12 @@ static void handle_redirect(int *p_fd_in, int *p_fd_out, ast_node *head) {
         }
         dup2(fd_in, STDIN_FILENO);
     }
-    if (head->output_filename != NULL) {
-        if (head->output_file_mode == 1)
+    if (head->output_filename) {
+        if (head->output_file_mode == 1) {
             fd_out = open(head->output_filename, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-        else
-            fd_out = open(head->output_filename, O_WRONLY | O_APPEND | O_CREAT, 0777);
+        } else {
+            fd_out = open(head->output_filename, O_WRONLY | O_CREAT | O_APPEND, 0777);
+        }
         if (fd_out < 0) {
             fprintf(stderr, "Unable to create file for writing\n");
             exit(0);
@@ -170,11 +171,11 @@ static int execute_one(ast_node *head) {
 static int execute_all(ast_node *head) {
     ast_node *temp = head;
 
-    while (temp != NULL) {
+    while (temp) {
         ast_node *temp2 = temp;
 
         int cmds = 1;
-        while (temp2 != NULL && temp2->pipe_send) {
+        while (temp2 && temp2->pipe_send) {
             cmds++;
             temp2 = temp2->next;
         }
@@ -193,11 +194,9 @@ static int execute_all(ast_node *head) {
 
         for (int i = 0; i<cmds; i++) {
             if (strcmp(commands[i]->command, "cd") == 0) {
-                // puts("execute all cd");
                 execute_one(commands[i]);
                 continue;
-            }
-            else if (strcmp(commands[i]->command, "fg") == 0) {
+            } else if (strcmp(commands[i]->command, "fg") == 0) {
                 execute_one(commands[i]);
                 continue;
             } else if (strcmp(commands[i]->command, "bg") == 0) {
@@ -206,8 +205,10 @@ static int execute_all(ast_node *head) {
             } else if (strcmp(commands[i]->command, "ping") == 0) {
                 execute_one(commands[i]);
                 continue;
-            } else if (strcmp(commands[i]->command, "log") == 0 && commands[i]->command_args_head != NULL &&
-                        strcmp(commands[i]->command_args_head->command, "execute") != 0) {
+            } else if (strcmp(commands[i]->command, "log") == 0
+                       && commands[i]->command_args_head
+                       && strcmp(commands[i]->command_args_head->command, "execute") != 0)
+            {
                 execute_one(commands[i]);
                 continue;
             }

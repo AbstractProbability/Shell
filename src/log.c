@@ -111,9 +111,9 @@ void log_store(char *input) {
     curr_logs++;
 
     if (curr_logs > 15) {
-        while (temp->next->next != NULL)
+        while (temp->next->next != NULL) {
             temp = temp->next;
-
+        }
         free(temp->next);
         temp->next = NULL;
         curr_logs = 15;
@@ -154,10 +154,9 @@ void log_execute(int index) {
             if (index == idx) {
                 executor(temp->string);
                 break;
-            } else {
-                idx++;
-                temp = temp->next;
             }
+            idx++;
+            temp = temp->next;
         }
     }
     return;
