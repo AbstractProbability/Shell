@@ -1,36 +1,40 @@
 #ifndef PARSER2_H
 #define PARSER2_H
 
-typedef struct token_list_node {
-    char *token;
-    struct token_list_node *next;
-} token_list_node;
+#define FILE_TRUNCATE   1
+#define FILE_APPEND     2
 
 typedef struct arg_node {
-    char *command;
-    struct arg_node *next_arg;
+    char *arg;
+    struct arg_node *next;
 } arg_node;
 
-typedef struct ast_node {
+typdef struct cmd_node {
     char *command;
-    arg_node *command_args_head;
+    int argc;
+    arg_node *args;             // array of args
     char *input_filename;
     char *output_filename;
-    int output_file_mode; // 0 = none, 1 = overwrite, 2 = append
-    int pipe_send;
-    int background;
-    struct ast_node *next;
-} ast_node;
+    int has_input_file;
+    int has_output_file;
+    int pipe_in;
+    int pipe_out;
+    struct cmd_node *next;
+}
+
+typedef struct cmd_group_node {
+    cmd_node *cmds_head;             // linked list of piped cmd_node
+    cmd_node *cmds_tail;
+    int is_background;          // boolean representing backround execution
+    struct cmd_group_node *next;
+} cmd_group;
 
 // checks special char except whitespace
 int is_special(char c);
 
-// tokenise the input string
-// by spaces and group special characters
-token_list_node *tokenise(char *input_string);
+char *get_next_token(char **p_input);
 
-// return valid ast, else grammar error
-ast_node* build_ast(token_list_node *token_head);
+cmd_group_node *build_ast(char *input_line);
 
 #endif
 
