@@ -1,13 +1,16 @@
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "../include/common.h"
 #include "../include/parser.h"
 
 static char SPECIAL_CHARS[] = {'&', '|', '>', '<', ';'};
 static int NUM_SPECIAL_CHARS = sizeof(SPECIAL_CHARS);
 
 // checks special char except whitespace
-int is_special(char c) {
+static int is_special(char c)
+{
     for (int i = 0; i<NUM_SPECIAL_CHARS; i++) {
         if (c == SPECIAL_CHARS[i]) {
             return 1;
@@ -16,256 +19,241 @@ int is_special(char c) {
     return 0;
 }
 
-// returns a pointer to a token_list_node
-static token_list_node *get_token_list_node(char *token) {
-    token_list_node *new_tok = malloc(sizeof(token_list_node));
-    new_tok->token = token;
-    new_tok->next = NULL;
-    return new_tok;
-}
-
-static void skip_whitespace(char **p_tok_start) {
-    while (**p_tok_start && isspace(**p_tok_start)) {
-        (*p_tok_start)++;
-    }
-}
-
-static void skip_nonwhitespace(char **p_tok_end) {
-    while (**p_tok_end && !isspace(**p_tok_end)) {
-        (*p_tok_end)++;
-    }
-}
-
-// splits into tokens based on whitespaces
-// returns pointer to head of linked list
-static token_list_node *tokenise_whitespace(char *input_string) {
-    token_list_node *head = get_token_list_node(NULL), *temp = head;
-    char *tok_start = input_string;
-
-    while (*tok_start) {
-        skip_whitespace(&tok_start);
-        if (!(*tok_start)) {
-            break;
-        }
-        char *tok_end = tok_start;
-        skip_nonwhitespace(&tok_end);
-
-        temp->next = get_token_list_node(strndup(tok_start, tok_end-tok_start));
-
-        temp = temp->next;
-        tok_start = tok_end;
-    }
-
-    temp = head;
-    head = head->next;
-    free(temp);
-    return head;
-}
-
-static void skip_till_dissimilar(char *tok_start, char **p_tok_end) {
-    while (**p_tok_end && is_special(**p_tok_end) == is_special(*tok_start)) {
-        (*p_tok_end)++;
-    }
-}
-
-static token_list_node *repair_list(
-        token_list_node **p_ihead,
-        token_list_node **p_itemp,
-        token_list_node **p_temp)
+static void skip_whitespace(char **p_tok)
 {
-    token_list_node *save = *p_ihead;
-    *p_ihead = (*p_ihead)->next;
-    free(save);
-
-    (*p_itemp)->next = (*p_temp)->next;
-    save = (*p_temp)->next;
-
-    free((*p_temp)->token);
-    (*p_temp)->token = (*p_ihead)->token;
-
-    // ihead possibly be equal to itemp because the token contained
-    // only special char or only non-special char. In this case
-    // temp->next should not be set to ihead->next to keep the list intact
-    if (*p_ihead != *p_itemp) {
-        (*p_temp)->next = (*p_ihead)->next;
+    // printf("called");
+    while (**p_tok && isspace(**p_tok)) {
+        // printf("!%c", *p_tok);
+        (*p_tok)++;
     }
-    free(*p_ihead);
-    return save;
+    // printf("...1...\n");
 }
 
-// further splits tokens into more tokens based on special characters
-static void tokenise_pass2(token_list_node *head) {
-    token_list_node *temp = head;
-
-    while (temp) {
-        char *tok_start = temp->token;
-
-        token_list_node *ihead = get_token_list_node(NULL), *itemp;
-        itemp = ihead;
-
-        // create linked list of tokens, each containing bunch of special
-        // characters or a bunch of non-special characters, linked list
-        // starts at ihead
-        while (tok_start) {
-            if (!(*tok_start)) {
-                break;
-            }
-            char *tok_end = tok_start;
-            skip_till_dissimilar(tok_start, &tok_end);
-
-            itemp->next = get_token_list_node(strndup(tok_start, tok_end-tok_start));
-
-            itemp = itemp->next;
-            tok_start = tok_end;
-        }
-        temp = repair_list(&ihead, &itemp, &temp);
+static void skip_till_special_or_whitespace(char **p_tok)
+{
+    while (**p_tok && !isspace(**p_tok) && !is_special(**p_tok)) {
+        (*p_tok)++;
     }
 }
 
-static void spill_tokens(token_list_node *head) {
-    while (head != NULL) {
-        printf("\"%s\" ", head->token);
-        head = head->next;
-    }
-    printf("\n");
+static char *string_from_start_end_memloc(char *start_memloc, char *end_memloc)
+{
+    char *ret = malloc(sizeof(char) * (end_memloc-start_memloc+1));
+    strncpy(ret, start_memloc, end_memloc-start_memloc);
+#ifdef DEBUG
+    printf("\"%s\"(%d), ", ret, end_memloc-start_memloc);
+#endif
+    return ret;
 }
 
-token_list_node* tokenise(char *input_string) {
-    token_list_node *head = tokenise_whitespace(input_string);
-    tokenise_pass2(head);
-    // spill_tokens(head);
-    return head;
+/* Expects pointer to non-Null string as input and outputs the next token
+ * in the string.
+ * Next token is any one special character among SPECIAL_CHARS, or a
+ * string of non-special, non-whitespace characters
+ * Returns a COPY of the next string.
+ */
+char *get_next_token(char **p_input)
+{
+    skip_whitespace(p_input);
+    char *start = *p_input;
+    if (**p_input == '\0') {
+        return NULL;
+    }
+    if (is_special(**p_input)) {
+        (*p_input)++;
+    } else {
+        skip_till_special_or_whitespace(p_input);
+    }
+    return string_from_start_end_memloc(start, *p_input);
 }
 
 // create empty arg_node
-static arg_node* create_arg_node() {
-    arg_node *newNode = malloc(sizeof(arg_node));
-    newNode->command = NULL;
-    newNode->next_arg = NULL;
-    return newNode;
+static arg_node *create_arg_node(char *arg)
+{
+    arg_node *new_arg_node = malloc(sizeof(arg_node));
+
+    new_arg_node->arg       = arg;
+    new_arg_node->next  = NULL;
+
+    return new_arg_node;
 }
 
-// create empty ast_node
-static ast_node* create_ast_node() {
-    ast_node *newNode = malloc(sizeof(ast_node));
-    newNode->command = NULL;
-    newNode->command_args_head = NULL;
-    newNode->input_filename = NULL;
-    newNode->output_filename = NULL;
-    newNode->output_file_mode = 0;
-    newNode->pipe_send = 0;
-    newNode->background = 0;
-    newNode->next = NULL;
-    return newNode;
+static cmd_node *create_cmd_node(void)
+{
+    cmd_node *new_cmd_node = malloc(sizeof(cmd_node));
+
+    new_cmd_node->command   = NULL;
+    new_cmd_node->args_head = NULL;
+    new_cmd_node->args_tail = NULL;
+    new_cmd_node->argc      = 0;
+    new_cmd_node->pipe_in   = 0;
+    new_cmd_node->pipe_out  = 0;
+    new_cmd_node->next      = NULL;
+
+    return new_cmd_node;
 }
 
-static int is_valid_token(token_list_node *token) {
-    int token_size = strlen(token->token);
-    char *it = token->token;
-    if (*it == '>'
-        && !(*(it+1) == '\0'
-            || (*(it+1) == '>' && token_len == 2)))
-    {
-        return 0;
-    }
-    if (*it != '>' && is_special(*it) && token_size > 1) {
-        return 0;
-    }
-    return 1;
+static cmd_group_node *create_cmd_group_node(void)
+{
+    cmd_group_node *new_cmd_group_node = malloc(sizeof(cmd_group_node));
+
+    new_cmd_group_node->cmds_head       = NULL;
+    new_cmd_group_node->cmds_tail       = NULL;
+    new_cmd_group_node->input_filename  = NULL;
+    new_cmd_group_node->output_filename = NULL;
+    new_cmd_group_node->has_input_file  = 0;
+    new_cmd_group_node->has_output_file = 0;
+    new_cmd_group_node->is_background   = 0;
+    new_cmd_group_node->next            = NULL;
+
+    return new_cmd_group_node;
 }
 
-// basic check: too many special characters in a token
-static int basic_check(token_list_node *head) {
-    token_list_node *temp = head;
-    while (temp != NULL) {
-        int token_size = strlen(temp->token);
-        if (!is_valid_token(temp)) {
-            fprintf(stdout, "Invalid Syntax!\n");
-            return 1;
-        }
-        temp = temp->next;
-    }
-    return 0;
+static void print_syntax_error(void)
+{
+    printf("Syntax error\n");
 }
 
-// return valid ast, else grammar error
-ast_node* build_ast(token_list_node *token_head) {
-    int ret = basic_check(token_head);
-    if (ret != 0) return NULL;
-
-    ast_node *ast_head = create_ast_node();
-    token_list_node *token_temp = token_head;
-    ast_node *ast_temp = ast_head;
-    int input_symbol = 0, output_symbol = 0;
-    int pipe = 0, newcmd = 0;
-
-    while (token_temp != NULL) {
-        if (is_special(token_temp->token[0]) &&
-            !(input_symbol == 0 && output_symbol == 0 &&
-            newcmd == 0 && pipe == 0 &&
-            ast_temp->command != NULL))
-        {
-            fprintf(stdout, "Invalid Syntax!\n");
-            return NULL;
-        }
-        if (is_special(token_temp->token[0])) {
-            if (token_temp->token[0] == '>') {
-                if (token_temp->token[1] == '\0') {
-                    output_symbol = 1;
-                } else {
-                    output_symbol = 2;
-                }
-            } else if (token_temp->token[0] == '<') {
-                input_symbol = 1;
-            } else {
-                if (token_temp->token[0] == '|') {
-                    pipe = 1;
-                    ast_temp->next = create_ast_node();
-                    ast_temp->pipe_send = 1;
-                    ast_temp = ast_temp->next;
-                } else if (token_temp->token[0] == '&') {
-                    newcmd = 1;
-                    ast_temp->background = 1;
-                } else {
-                    newcmd = 1;
-                }
-            }
-        } else {
-            if (input_symbol != 0) {
-                ast_temp->input_filename = token_temp->token;
-            } else if (output_symbol != 0) {
-                ast_temp->output_filename = token_temp->token;
-                ast_temp->output_file_mode = output_symbol;
-            } else {
-                if (newcmd) {
-                    ast_temp->next = create_ast_node();
-                    ast_temp = ast_temp->next;
-                }
-
-                if (ast_temp->command == NULL) {
-                    ast_temp->command = token_temp->token;
-                } else {
-                    if (ast_temp->command_args_head == NULL) {
-                        ast_temp->command_args_head = create_arg_node();
-                        ast_temp->command_args_head->command = token_temp->token;
-                    }
-                }
-            }
-            input_symbol = 0; output_symbol = 0;
-            newcmd = 0; pipe = 0;
-        }
-        token_temp = token_temp->next;
-    }
-
-
-    if (ast_temp->command == NULL) {
-        if (ast_head->command == NULL) {
-            return NULL;
-        }
-        fprintf(stdout, "Invalid Syntax!\n");
+cmd_group_node *build_ast(char *input_line)
+{
+    char *in = input_line;
+    char *token = get_next_token(&in);
+    if (!token) {
+        // special case: empty string/only whitespace returns NULL
         return NULL;
     }
+    cmd_group_node *head = create_cmd_group_node();
+    cmd_group_node *curr = head;
 
-    return ast_head;
+    for (; token; token = get_next_token(&in)) {
+        // printf("token: %s ", token);
+        // continue;
+        switch (*token) {
+        case ';':
+            if (!curr->cmds_tail || !curr->cmds_tail->command) {
+                goto error;
+            }
+
+            // issue: if command just ends with ';' then last ast node
+            // is not executable and empty but still there
+            curr->next = create_cmd_group_node();
+            curr = curr->next;
+            break;
+        case '&':
+            if (!curr->cmds_tail || !curr->cmds_tail->command
+                || curr->is_background)
+            {
+                goto error;
+            }
+
+            // issue: if command just ends with '&' then last ast node
+            // is not executable and empty but still there
+            curr->is_background = 1;
+            curr->next = create_cmd_group_node();
+            curr = curr->next;
+            break;
+        case '<':
+            if (curr->has_input_file) {
+                goto error;
+            }
+            if (curr->has_output_file && !curr->output_filename) {
+                goto error;
+            }
+
+            curr->has_input_file = 1;
+            break;
+        case '>':
+            if (curr->has_output_file == FILE_APPEND) {
+                goto error;
+            }
+            if (curr->has_output_file == FILE_TRUNCATE
+                && curr->output_filename)
+            {
+                goto error;
+            }
+            if (curr->has_input_file && !curr->input_filename) {
+                goto error;
+            }
+
+            if (curr->has_output_file == FILE_TRUNCATE) {
+                curr->has_output_file = FILE_APPEND;
+            } else {
+                curr->has_output_file = FILE_TRUNCATE;
+            }
+            break;
+        case '|':
+            if (!curr->cmds_tail || !curr->cmds_tail->command) {
+                goto error;
+            }
+
+            curr->cmds_tail->next = create_cmd_node();
+            curr->cmds_tail->pipe_out = 1;
+            curr->cmds_tail->next->pipe_in = 1;
+            curr->cmds_tail = curr->cmds_tail->next;
+            break;
+        default: // non-special token
+            // token is part of cmd_group
+            if (curr->has_input_file && !curr->input_filename) {
+                curr->input_filename = token;
+                continue;
+            }
+            if (curr->has_output_file && !curr->output_filename) {
+                curr->output_filename = token;
+                continue;
+            }
+
+            // token is part of cmd
+            if (!curr->cmds_tail) {
+                curr->cmds_tail = create_cmd_node();
+                curr->cmds_head = curr->cmds_tail;
+            }
+            cmd_node *currcmd = curr->cmds_tail;
+
+            // token is command name
+            if (!currcmd->command) {
+                currcmd->command = token;
+                continue;
+            }
+            // token is an arg
+            if (!currcmd->args_tail) {
+                currcmd->args_tail = create_arg_node(token);
+                currcmd->args_head = currcmd->args_tail;
+                currcmd->argc++;
+                continue;
+            }
+            currcmd->args_tail->next = create_arg_node(token);
+            currcmd->args_tail = currcmd->args_tail->next;
+            currcmd->argc++;
+            break;  // break from switch not loop
+        }
+    }
+
+    // final implicit semicolon insertion
+
+    // 1.   There was a final explicit ';'/'&'. So there is a
+    //      dangling 'curr' at the end. Just delete curr and return head.
+    if (!curr->cmds_head) {
+        curr = head;
+        while (curr->next && curr->next->next) {
+            curr = curr->next;
+        }
+        if (curr->next) {
+            free(curr->next);
+            curr->next = NULL;
+        }
+    }
+
+    // 2.   Insert implicit semicolon. Same error case as the explicit
+    //      semicolon check inside the switch statement in the main loop.
+    //      Only the error case is considered because we dont need a new
+    //      cmd_group_node because there are no more command groups
+    if (!curr->cmds_tail || !curr->cmds_tail->command) {
+        goto error;
+    }
+    return head;
+
+error:
+    print_syntax_error();
+    return NULL;
 }
 
